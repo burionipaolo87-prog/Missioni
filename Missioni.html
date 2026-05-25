@@ -1294,7 +1294,7 @@ function creaMissione() {
     note: document.getElementById('input-note').value.trim(),
     incasso: 0,
   };
-  missioni.unshift(m);
+  missioni.push(m);
   salva();
   showPage('aperte');
 }
