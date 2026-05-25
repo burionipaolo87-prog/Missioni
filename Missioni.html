@@ -1318,18 +1318,36 @@ function closeSettingsMenu() {
 }
 
 // ===== FACE ID =====
-function enableFaceID() {
+async function enableFaceID() {
   const enabled = localStorage.getItem('missioni_faceid') === '1';
   if (enabled) {
     localStorage.removeItem('missioni_faceid');
     alert('Face ID disabilitato.');
-  } else {
-    if (window.PublicKeyCredential) {
-      localStorage.setItem('missioni_faceid', '1');
-      alert('Face ID abilitato. Al prossimo avvio verrà richiesto il riconoscimento facciale.');
-    } else {
-      alert('Face ID non disponibile su questo dispositivo o browser.');
-    }
+    return;
+  }
+  if (!window.PublicKeyCredential) {
+    alert('Face ID non disponibile su questo dispositivo o browser.');
+    return;
+  }
+  try {
+    const challenge = new Uint8Array(32);
+    crypto.getRandomValues(challenge);
+    const userId = new Uint8Array(16);
+    crypto.getRandomValues(userId);
+    await navigator.credentials.create({
+      publicKey: {
+        challenge,
+        rp: { name: 'Missioni', id: window.location.hostname || 'localhost' },
+        user: { id: userId, name: 'utente', displayName: 'Utente Missioni' },
+        pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+        authenticatorSelection: { userVerification: 'required', authenticatorAttachment: 'platform' },
+        timeout: 60000,
+      }
+    });
+    localStorage.setItem('missioni_faceid', '1');
+    alert('Face ID abilitato! Al prossimo avvio verrà usato il riconoscimento facciale.');
+  } catch(e) {
+    alert('Face ID non disponibile o operazione annullata.');
   }
 }
 
@@ -1565,11 +1583,57 @@ function initPin() {
     pinMode = 'set';
     document.getElementById('pin-title').textContent = 'Crea PIN';
     document.getElementById('pin-sub').textContent = 'Scegli 6 cifre';
+  } else if (localStorage.getItem('missioni_faceid') === '1') {
+    // Face ID abilitato: tenta subito il riconoscimento
+    document.getElementById('pin-title').textContent = 'Face ID';
+    document.getElementById('pin-sub').textContent = 'Riconoscimento in corso...';
+    document.getElementById('pin-dots').style.display = 'none';
+    // Aggiungi pulsante fallback PIN
+    if (!document.getElementById('faceid-fallback')) {
+      const btn = document.createElement('button');
+      btn.id = 'faceid-fallback';
+      btn.textContent = 'Usa codice PIN';
+      btn.style.cssText = 'margin-top:24px;background:rgba(255,255,255,0.15);color:white;border:none;border-radius:12px;padding:12px 28px;font-size:15px;font-weight:600;cursor:pointer;';
+      btn.onclick = () => showPinFallback();
+      document.getElementById('pin-overlay').querySelector('div').appendChild(btn);
+    }
+    attemptFaceID();
   } else {
     pinMode = 'unlock';
     document.getElementById('pin-title').textContent = 'Inserisci PIN';
     document.getElementById('pin-sub').textContent = '6 cifre per accedere';
   }
+}
+
+async function attemptFaceID() {
+  try {
+    // Usa WebAuthn per Face ID / Touch ID / biometria
+    const challenge = new Uint8Array(32);
+    crypto.getRandomValues(challenge);
+    const credential = await navigator.credentials.get({
+      publicKey: {
+        challenge,
+        timeout: 60000,
+        userVerification: 'required',
+        rpId: window.location.hostname || 'localhost',
+      }
+    });
+    if (credential) {
+      unlockApp();
+    }
+  } catch(e) {
+    // Face ID fallito o annullato → mostra PIN
+    showPinFallback();
+  }
+}
+
+function showPinFallback() {
+  document.getElementById('pin-title').textContent = 'Inserisci PIN';
+  document.getElementById('pin-sub').textContent = '6 cifre per accedere';
+  document.getElementById('pin-dots').style.display = 'flex';
+  const fb = document.getElementById('faceid-fallback');
+  if (fb) fb.style.display = 'none';
+  pinMode = 'unlock';
 }
 
 // ===== INIT =====
