@@ -1836,6 +1836,36 @@ function showPinFallback() {
   pinMode = 'unlock';
 }
 
+// ===== SIMULAZIONE: 20 MISSIONI PRE-CARICATE =====
+(function injectTestData() {
+  const testMissioni = [
+    { id:'1001', stato:'aperta', nazione:'Germania', citta:'Berlino', dal:'10/01/2025', al:'14/01/2025', ora1:'06:45', ora2:'09:10', dataOra2:'', ora3:'17:30', dataOra3:'', ora4:'20:05', note:'Conferenza annuale', incasso:0 },
+    { id:'1002', stato:'aperta', nazione:'Francia', citta:'Parigi', dal:'03/02/2025', al:'07/02/2025', ora1:'07:20', ora2:'09:00', dataOra2:'', ora3:'18:45', dataOra3:'', ora4:'20:30', note:'Riunione con cliente', incasso:0 },
+    { id:'1003', stato:'aperta', nazione:'Spagna', citta:'Madrid', dal:'15/03/2025', al:'18/03/2025', ora1:'08:00', ora2:'10:15', dataOra2:'', ora3:'16:00', dataOra3:'', ora4:'18:20', note:'', incasso:0 },
+    { id:'1004', stato:'aperta', nazione:'Belgio', citta:'Bruxelles', dal:'20/04/2025', al:'23/04/2025', ora1:'07:05', ora2:'08:50', dataOra2:'', ora3:'17:10', dataOra3:'', ora4:'18:55', note:'Riunione EU', incasso:0 },
+    { id:'1005', stato:'aperta', nazione:'Svizzera', citta:'Ginevra', dal:'07/07/2025', al:'11/07/2025', ora1:'06:10', ora2:'07:55', dataOra2:'', ora3:'19:00', dataOra3:'', ora4:'20:45', note:'Negoziazione contratto', incasso:0 },
+    { id:'1006', stato:'aperta', nazione:'Svezia', citta:'Stoccolma', dal:'01/09/2025', al:'05/09/2025', ora1:'06:50', ora2:'09:35', dataOra2:'', ora3:'18:10', dataOra3:'06/09/2025', ora4:'21:00', note:'Summit nordico', incasso:0 },
+    { id:'1007', stato:'aperta', nazione:'Irlanda', citta:'Dublino', dal:'06/10/2025', al:'10/10/2025', ora1:'07:00', ora2:'09:15', dataOra2:'', ora3:'18:30', dataOra3:'', ora4:'20:45', note:'Cliente tech', incasso:0 },
+    { id:'1008', stato:'aperta', nazione:'Romania', citta:'Bucarest', dal:'17/11/2025', al:'21/11/2025', ora1:'07:30', ora2:'10:00', dataOra2:'', ora3:'17:30', dataOra3:'', ora4:'20:00', note:'Espansione mercato', incasso:0 },
+    { id:'1009', stato:'aperta', nazione:'Slovenia', citta:'Lubiana', dal:'08/01/2026', al:'10/01/2026', ora1:'07:45', ora2:'09:10', dataOra2:'', ora3:'15:30', dataOra3:'', ora4:'16:55', note:'Breve sopralluogo', incasso:0 },
+    { id:'1010', stato:'aperta', nazione:'Grecia', citta:'Atene', dal:'14/04/2026', al:'18/04/2026', ora1:'08:30', ora2:'11:45', dataOra2:'', ora3:'16:00', dataOra3:'', ora4:'19:15', note:'Fiera internazionale', incasso:0 },
+    { id:'1011', stato:'chiusa', nazione:'Portogallo', citta:'Lisbona', dal:'01/04/2025', al:'05/04/2025', ora1:'06:30', ora2:'08:45', dataOra2:'', ora3:'19:00', dataOra3:'', ora4:'21:15', note:'Visita filiale', incasso:1800.50, dataChiusura:'05/04/2025' },
+    { id:'1012', stato:'chiusa', nazione:'Paesi Bassi', citta:'Amsterdam', dal:'05/05/2025', al:'09/05/2025', ora1:'06:55', ora2:'08:40', dataOra2:'', ora3:'18:20', dataOra3:'', ora4:'20:10', note:'', incasso:2100.00, dataChiusura:'09/05/2025' },
+    { id:'1013', stato:'chiusa', nazione:'Austria', citta:'Vienna', dal:'12/06/2025', al:'14/06/2025', ora1:'07:40', ora2:'09:25', dataOra2:'', ora3:'16:30', dataOra3:'', ora4:'18:20', note:'Workshop tecnico', incasso:950.00, dataChiusura:'14/06/2025' },
+    { id:'1014', stato:'chiusa', nazione:'Polonia', citta:'Varsavia', dal:'04/08/2025', al:'07/08/2025', ora1:'07:15', ora2:'09:30', dataOra2:'', ora3:'17:45', dataOra3:'', ora4:'20:00', note:'Formazione staff', incasso:1100.00, dataChiusura:'07/08/2025' },
+    { id:'1015', stato:'chiusa', nazione:'Norvegia', citta:'Oslo', dal:'10/09/2025', al:'12/09/2025', ora1:'07:25', ora2:'10:20', dataOra2:'', ora3:'16:45', dataOra3:'', ora4:'19:40', note:'', incasso:870.00, dataChiusura:'12/09/2025' },
+    { id:'1016', stato:'chiusa', nazione:'Danimarca', citta:'Copenaghen', dal:'20/09/2025', al:'24/09/2025', ora1:'06:40', ora2:'09:10', dataOra2:'', ora3:'17:55', dataOra3:'', ora4:'20:25', note:'Design review', incasso:1400.00, dataChiusura:'24/09/2025' },
+    { id:'1017', stato:'chiusa', nazione:'Repubblica Ceca', citta:'Praga', dal:'14/10/2025', al:'17/10/2025', ora1:'07:50', ora2:'09:45', dataOra2:'', ora3:'17:00', dataOra3:'', ora4:'19:00', note:'', incasso:780.00, dataChiusura:'17/10/2025' },
+    { id:'1018', stato:'chiusa', nazione:'Ungheria', citta:'Budapest', dal:'03/11/2025', al:'06/11/2025', ora1:'08:10', ora2:'10:05', dataOra2:'', ora3:'16:20', dataOra3:'', ora4:'18:15', note:'Audit', incasso:1050.00, dataChiusura:'06/11/2025' },
+    { id:'1019', stato:'chiusa', nazione:'Croazia', citta:'Zagabria', dal:'01/12/2025', al:'04/12/2025', ora1:'06:20', ora2:'07:50', dataOra2:'', ora3:'16:10', dataOra3:'', ora4:'17:40', note:'', incasso:920.00, dataChiusura:'04/12/2025' },
+    { id:'1020', stato:'chiusa', nazione:'Finlandia', citta:'Helsinki', dal:'20/01/2026', al:'24/01/2026', ora1:'06:30', ora2:'09:55', dataOra2:'', ora3:'17:15', dataOra3:'', ora4:'20:40', note:'Progetto invernale', incasso:2300.00, dataChiusura:'24/01/2026' },
+  ];
+  localStorage.setItem('missioni', JSON.stringify(testMissioni));
+  localStorage.setItem('missioni_pin_set', '1');
+  localStorage.setItem('missioni_pin', pinHash('123456'));
+  missioni = testMissioni;
+})();
+
 // ===== INIT =====
 initPin();
 </script>
