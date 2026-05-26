@@ -204,13 +204,11 @@
     display: flex; align-items: center; gap: 6px;
   }
   .totale-bar {
-    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-    width: 100%; max-width: 430px;
+    width: 100%;
     background: var(--blu);
     padding: 16px 24px 32px;
     display: flex; justify-content: flex-end; align-items: center;
     gap: 8px;
-    z-index: 100;
   }
   .totale-label { color: var(--grigio2); font-size: 14px; }
   .totale-value { color: var(--oro); font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
@@ -484,14 +482,13 @@
 
   /* ===== PAGES ===== */
   .page { display: none; }
-  .page.active { display: block; }
+  .page.active { animation: slideIn 0.22s ease-out; }
 
   /* Animazione transizione */
   @keyframes slideIn {
     from { opacity: 0; transform: translateX(30px); }
     to { opacity: 1; transform: translateX(0); }
   }
-  .page.active { animation: slideIn 0.22s ease-out; }
 </style>
 </head>
 <body>
@@ -562,7 +559,7 @@
 </style>
 
 <!-- ========== HOME ========== -->
-<div id="page-home" class="page active">
+<div id="page-home" class="page active" style="display:block;">
   <div style="background:#a6a6a6; padding:52px 20px 20px; position:relative;">
     <button onclick="toggleSettingsMenu()" style="position:absolute;top:56px;left:18px;background:none;border:none;cursor:pointer;padding:6px;z-index:10;">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--blu)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -621,16 +618,16 @@
 </div>
 
 <!-- ========== CHIUSE ========== -->
-<div id="page-chiuse" class="page">
-  <div class="header">
+<div id="page-chiuse" class="page" style="display:none;flex-direction:column;height:100vh;overflow:hidden;">
+  <div class="header" style="flex-shrink:0;">
     <button class="back-btn" onclick="showPage('home')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       Home
     </button>
     <h1 style="flex:1;">Missioni Chiuse</h1>
   </div>
-  <div class="lista-content" id="lista-chiuse"></div>
-  <div class="totale-bar" id="totale-bar">
+  <div class="lista-content" id="lista-chiuse" style="flex:1;overflow-y:auto;padding-bottom:16px;"></div>
+  <div class="totale-bar" id="totale-bar" style="position:relative;left:auto;transform:none;flex-shrink:0;">
     <span class="totale-label">Totale incassato</span>
     <span class="totale-value" id="totale-value">€ 0,00</span>
   </div>
@@ -993,17 +990,25 @@ document.addEventListener('scroll', function(e) {
 
 // ===== NAVIGAZIONE =====
 function showPage(page, extra) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-' + page).classList.add('active');
-  if (page !== currentPage) { prevPage = currentPage; }
-  currentPage = page;
-  window.scrollTo(0, 0);
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.remove('active');
+    p.style.display = 'none';
+  });
+  const target = document.getElementById('page-' + page);
+  if (page === 'chiuse') {
+    target.style.display = 'flex';
+  } else {
+    target.style.display = 'block';
+  }
+  target.classList.add('active');
+  if (page !== 'chiuse') window.scrollTo(0, 0);
 
   if (page === 'home') { updateCounts(); }
   if (page === 'aperte') { renderAperte(); }
   if (page === 'chiuse') { renderChiuse(); }
   if (page === 'dettaglio' && extra) { renderDettaglio(extra); }
   if (page === 'aggiungi') { resetForm(); }
+  if (page === 'modifica' && extra) { resetFormModifica(extra); }
 }
 
 function updateCounts() {
@@ -1036,7 +1041,7 @@ function renderAperte() {
         ${calcolaGiorni(m.dal, m.al) ? `<span class="missione-tag" style="color:var(--accent2);font-weight:600;">${calcolaGiorni(m.dal, m.al)}</span>` : ''}
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
-        <button class="btn-chiudi" style="flex:1;" onclick="event.stopPropagation(); apriModaleChiudi('${m.id}')">🔒 Chiudere</button>
+        <button class="btn-chiudi" style="flex:1;" onclick="event.stopPropagation(); apriModaleChiudi('${m.id}')">🔒 Chiudere la Missione</button>
         <button class="btn-chiudi" style="width:44px;height:44px;padding:0;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;border-color:var(--rosso);color:var(--rosso);" onclick="event.stopPropagation(); confermaElimina('${m.id}')">🗑</button>
       </div>
     </div>
@@ -1078,6 +1083,8 @@ function renderChiuse() {
   totEl.onclick = function() {
     this.textContent = this.textContent.includes('•') ? this.dataset.val : '€ ••••••';
   };
+  // Scroll automatico all'ultima missione (in fondo)
+  setTimeout(() => { el.scrollTop = el.scrollHeight; }, 50);
 }
 
 function formatEuro(val) {
@@ -1167,7 +1174,7 @@ function renderDettaglio(id) {
         Salva note
       </button>
     </div>` : `
-    <button class="btn-crea" onclick="apriModaleChiudi('${m.id}')">🔒 Chiudi questa missione</button>`}
+    <button class="btn-crea" onclick="showPage('modifica','${m.id}')">✏️ Modifica Missione</button>`}
     <button onclick="confermaElimina('${m.id}')" style="width:100%;margin-top:10px;background:none;border:1.5px solid var(--rosso);color:var(--rosso);border-radius:var(--radius);padding:16px;font-size:15px;font-weight:700;cursor:pointer;">🗑 Elimina missione</button>
   `;
 }
@@ -1480,6 +1487,64 @@ function setGiornoMode(field, mode) {
   }
 }
 
+// ===== MODIFICA MISSIONE =====
+function resetFormModifica(id) {
+  const m = missioni.find(x => x.id === id);
+  if (!m) return;
+  document.getElementById('modifica-id').value = id;
+  document.getElementById('modifica-nazione').value = m.nazione || '';
+  document.getElementById('modifica-citta').value = m.citta || '';
+  document.getElementById('modifica-dal').value = m.dal || '';
+  document.getElementById('modifica-al').value = m.al || '';
+  document.getElementById('modifica-ora1').value = m.ora1 || '';
+  document.getElementById('modifica-ora2').value = m.ora2 || '';
+  document.getElementById('modifica-data-ora2').value = m.dataOra2 || '';
+  document.getElementById('modifica-ora3').value = m.ora3 || '';
+  document.getElementById('modifica-data-ora3').value = m.dataOra3 || '';
+  document.getElementById('modifica-ora4').value = m.ora4 || '';
+  document.getElementById('modifica-note').value = m.note || '';
+  setGiornoModeModifica('ora2', m.dataOra2 ? 'altro' : 'stesso');
+  setGiornoModeModifica('ora3', m.dataOra3 ? 'altro' : 'stesso');
+}
+
+function setGiornoModeModifica(field, mode) {
+  const row = document.getElementById('modifica-' + field + '-data-row');
+  const btnS = document.getElementById('modifica-btn-' + field + '-stessog');
+  const btnA = document.getElementById('modifica-btn-' + field + '-altrog');
+  if (!row) return;
+  if (mode === 'altro') {
+    row.style.display = 'block';
+    btnS.style.background = 'white'; btnS.style.color = 'var(--grigio3)'; btnS.style.borderColor = 'var(--grigio2)';
+    btnA.style.background = 'var(--accent)'; btnA.style.color = 'white'; btnA.style.borderColor = 'var(--accent)';
+  } else {
+    row.style.display = 'none';
+    document.getElementById('modifica-data-' + field).value = '';
+    btnA.style.background = 'white'; btnA.style.color = 'var(--grigio3)'; btnA.style.borderColor = 'var(--grigio2)';
+    btnS.style.background = 'var(--accent)'; btnS.style.color = 'white'; btnS.style.borderColor = 'var(--accent)';
+  }
+}
+
+function salvaMissione() {
+  const id = document.getElementById('modifica-id').value;
+  const nazione = document.getElementById('modifica-nazione').value.trim();
+  if (!nazione) { alert('Inserisci la nazione'); return; }
+  const m = missioni.find(x => x.id === id);
+  if (!m) return;
+  m.nazione = nazione;
+  m.citta = document.getElementById('modifica-citta').value.trim();
+  m.dal = document.getElementById('modifica-dal').value;
+  m.al = document.getElementById('modifica-al').value;
+  m.ora1 = document.getElementById('modifica-ora1').value;
+  m.ora2 = document.getElementById('modifica-ora2').value;
+  m.dataOra2 = document.getElementById('modifica-data-ora2').value;
+  m.ora3 = document.getElementById('modifica-ora3').value;
+  m.dataOra3 = document.getElementById('modifica-data-ora3').value;
+  m.ora4 = document.getElementById('modifica-ora4').value;
+  m.note = document.getElementById('modifica-note').value.trim();
+  salva();
+  showPage('dettaglio', id);
+}
+
 // ===== BANDIERE =====
 const BANDIERE = {
   "Afghanistan":"🇦🇫","Albania":"🇦🇱","Algeria":"🇩🇿","Andorra":"🇦🇩","Angola":"🇦🇴",
@@ -1524,6 +1589,53 @@ const BANDIERE = {
   "Vietnam":"🇻🇳","Yemen":"🇾🇪","Zambia":"🇿🇲","Zimbabwe":"🇿🇼"
 };
 function bandiera(nazione) { return BANDIERE[nazione] || '🌍'; }
+
+// ===== NAZIONI MODIFICA =====
+function filterNazioniModifica(val) {
+  const dd = document.getElementById('modifica-nazione-dropdown');
+  const filtered = val.length === 0
+    ? NAZIONI.slice(0, 30)
+    : NAZIONI.filter(n => n.toLowerCase().startsWith(val.toLowerCase()));
+  dd.innerHTML = filtered.map(n =>
+    `<div class="nazione-option" onmousedown="selectNazioneModifica('${n}')">${n}</div>`
+  ).join('');
+  dd.classList.toggle('show', filtered.length > 0);
+}
+function showNazioneDropdownModifica() {
+  filterNazioniModifica(document.getElementById('modifica-nazione').value);
+}
+function hideNazioneDropdownModifica() {
+  setTimeout(() => document.getElementById('modifica-nazione-dropdown').classList.remove('show'), 200);
+}
+function selectNazioneModifica(n) {
+  document.getElementById('modifica-nazione').value = n;
+  document.getElementById('modifica-nazione-dropdown').classList.remove('show');
+}
+
+// ===== DATE/TIME PICKER MODIFICA =====
+function openDatePickerModifica(field) {
+  dpTarget = 'modifica-' + field;
+  dpMode = 'date';
+  const today = new Date();
+  dpYear = today.getFullYear();
+  dpMonth = today.getMonth();
+  dpDay = today.getDate();
+  document.getElementById('dp-title').textContent = 'Seleziona data';
+  document.getElementById('dp-time-section').style.display = 'none';
+  renderCalendar();
+  document.getElementById('dp-overlay').classList.add('show');
+}
+
+function openTimePickerModifica(field) {
+  dpTarget = 'modifica-' + field;
+  dpMode = 'time';
+  dpHour = 0; dpMinute = 0;
+  document.getElementById('dp-title').textContent = 'Seleziona orario';
+  document.getElementById('dp-calendar').style.display = 'none';
+  document.getElementById('dp-time-section').style.display = 'block';
+  renderTimePicker();
+  document.getElementById('dp-overlay').classList.add('show');
+}
 
 // ===== PIN =====
 const PIN_KEY = 'missioni_pin';
@@ -1676,6 +1788,131 @@ function showPinFallback() {
 // ===== INIT =====
 initPin();
 </script>
+
+<!-- ========== MODIFICA MISSIONE ========== -->
+<div id="page-modifica" class="page">
+  <div class="header">
+    <button class="back-btn" id="modifica-back-btn" onclick="showPage('dettaglio', document.getElementById('modifica-id').value)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Dettaglio
+    </button>
+    <h1 style="flex:1;">Modifica Missione</h1>
+  </div>
+  <input type="hidden" id="modifica-id">
+  <div class="form-content">
+    <div class="form-section">
+      <label class="form-label">Nazione</label>
+      <div class="nazione-wrapper">
+        <input class="form-input" id="modifica-nazione" placeholder="Cerca nazione..." autocomplete="off"
+          oninput="filterNazioniModifica(this.value)" onfocus="showNazioneDropdownModifica()" onblur="hideNazioneDropdownModifica()">
+        <div class="nazione-dropdown" id="modifica-nazione-dropdown"></div>
+      </div>
+    </div>
+    <div class="form-section">
+      <label class="form-label">Città</label>
+      <input class="form-input" id="modifica-citta" placeholder="Es. Berlino">
+    </div>
+    <div class="form-section">
+      <label class="form-label">Dal</label>
+      <div class="dt-row">
+        <input class="form-input" id="modifica-dal" placeholder="gg/mm/aaaa" readonly>
+        <button class="dt-picker-btn" onclick="openDatePickerModifica('dal')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="form-section">
+      <label class="form-label">Al</label>
+      <div class="dt-row">
+        <input class="form-input" id="modifica-al" placeholder="gg/mm/aaaa" readonly>
+        <button class="dt-picker-btn" onclick="openDatePickerModifica('al')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <label class="form-label">Orari di volo</label>
+      <div class="orari-grid">
+        <div>
+          <span class="orario-label-small">Partito da Roma alle ore</span>
+          <div class="dt-row">
+            <input class="form-input" id="modifica-ora1" placeholder="--:--" readonly>
+            <button class="dt-picker-btn" onclick="openTimePickerModifica('ora1')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+            </button>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span class="orario-label-small" style="margin-bottom:0;">Giunto a destinazione alle ore (LT)</span>
+            <div style="display:flex;gap:4px;">
+              <button id="modifica-btn-ora2-stessog" onclick="setGiornoModeModifica('ora2','stesso')"
+                style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;border:1.5px solid var(--accent);background:var(--accent);color:white;cursor:pointer;">Stesso g.</button>
+              <button id="modifica-btn-ora2-altrog" onclick="setGiornoModeModifica('ora2','altro')"
+                style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;border:1.5px solid var(--grigio2);background:white;color:var(--grigio3);cursor:pointer;">Altro g.</button>
+            </div>
+          </div>
+          <div id="modifica-ora2-data-row" style="display:none;margin-bottom:6px;">
+            <div class="dt-row">
+              <input class="form-input" id="modifica-data-ora2" placeholder="gg/mm/aaaa" readonly style="font-size:14px;">
+              <button class="dt-picker-btn" onclick="openDatePickerModifica('data-ora2')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="dt-row">
+            <input class="form-input" id="modifica-ora2" placeholder="--:-- LT" readonly>
+            <button class="dt-picker-btn" onclick="openTimePickerModifica('ora2')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+            </button>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span class="orario-label-small" style="margin-bottom:0;">Partito dalla destinazione alle ore (LT)</span>
+            <div style="display:flex;gap:4px;">
+              <button id="modifica-btn-ora3-stessog" onclick="setGiornoModeModifica('ora3','stesso')"
+                style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;border:1.5px solid var(--accent);background:var(--accent);color:white;cursor:pointer;">Stesso g.</button>
+              <button id="modifica-btn-ora3-altrog" onclick="setGiornoModeModifica('ora3','altro')"
+                style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;border:1.5px solid var(--grigio2);background:white;color:var(--grigio3);cursor:pointer;">Altro g.</button>
+            </div>
+          </div>
+          <div id="modifica-ora3-data-row" style="display:none;margin-bottom:6px;">
+            <div class="dt-row">
+              <input class="form-input" id="modifica-data-ora3" placeholder="gg/mm/aaaa" readonly style="font-size:14px;">
+              <button class="dt-picker-btn" onclick="openDatePickerModifica('data-ora3')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="dt-row">
+            <input class="form-input" id="modifica-ora3" placeholder="--:-- LT" readonly>
+            <button class="dt-picker-btn" onclick="openTimePickerModifica('ora3')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+            </button>
+          </div>
+        </div>
+        <div>
+          <span class="orario-label-small">Giunto a Roma alle ore</span>
+          <div class="dt-row">
+            <input class="form-input" id="modifica-ora4" placeholder="--:--" readonly>
+            <button class="dt-picker-btn" onclick="openTimePickerModifica('ora4')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <label class="form-label">Note</label>
+      <textarea class="form-input" id="modifica-note" placeholder="Aggiungi note sulla missione..."></textarea>
+    </div>
+
+    <button class="btn-crea" onclick="salvaMissione()">💾 Salva Modifiche</button>
+  </div>
+</div>
 
 <!-- ========== CAMBIA PIN ========== -->
 <div id="page-cambia-pin" class="page">
