@@ -620,8 +620,11 @@
       <button onclick="closeSettingsMenu();esportaBackup()" class="mini-btn">
         📤 Esporta backup
       </button>
-      <button onclick="closeSettingsMenu();document.getElementById('backup-file-input').click()" class="mini-btn" style="border-bottom:none;">
+      <button onclick="closeSettingsMenu();document.getElementById('backup-file-input').click()" class="mini-btn">
         📥 Importa backup
+      </button>
+      <button onclick="closeSettingsMenu();showInfoModal()" class="mini-btn" style="border-bottom:none;">
+        ℹ️ Informazioni
       </button>
       <input id="backup-file-input" type="file" accept="application/json,.json" style="display:none" onchange="importaBackup(event)">
     </div>
@@ -2028,6 +2031,15 @@ function showPinFallback() {
 
 // ===== INIT =====
 initPin();
+
+function showInfoModal() {
+  document.getElementById('info-modal').classList.add('show');
+}
+
+function closeInfoModal() {
+  document.getElementById('info-modal').classList.remove('show');
+}
+
 </script>
 
 <!-- ========== MODIFICA MISSIONE ========== -->
@@ -2194,5 +2206,24 @@ initPin();
     </div>
   </div>
 </div>
+
+<!-- ========== INFORMAZIONI ========== -->
+<div id="info-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">Missioni</div>
+
+    <div style="font-size:15px;line-height:1.6;color:var(--testo);margin-top:14px;">
+      <strong>Creato da M.G.74</strong><br>
+      © 2026<br><br>
+      Applicazione locale per la gestione delle missioni.<br>
+      I dati restano salvati solo su questo dispositivo.
+    </div>
+
+    <div class="modal-btns">
+      <button class="modal-btn-ok" onclick="closeInfoModal()">OK</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
