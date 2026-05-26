@@ -1836,8 +1836,10 @@ function showPinFallback() {
   pinMode = 'unlock';
 }
 
-// ===== SIMULAZIONE: 20 MISSIONI PRE-CARICATE =====
+// ===== DATI INIZIALI: caricati solo al primo avvio =====
 (function injectTestData() {
+  // Se l'utente ha già usato l'app (PIN impostato), non sovrascrivere nulla
+  if (localStorage.getItem('missioni_pin_set')) return;
   const testMissioni = [
     { id:'1001', stato:'aperta', nazione:'Germania', citta:'Berlino', dal:'10/01/2025', al:'14/01/2025', ora1:'06:45', ora2:'09:10', dataOra2:'', ora3:'17:30', dataOra3:'', ora4:'20:05', note:'Conferenza annuale', incasso:0 },
     { id:'1002', stato:'aperta', nazione:'Francia', citta:'Parigi', dal:'03/02/2025', al:'07/02/2025', ora1:'07:20', ora2:'09:00', dataOra2:'', ora3:'18:45', dataOra3:'', ora4:'20:30', note:'Riunione con cliente', incasso:0 },
