@@ -890,10 +890,26 @@ let dpHour = 0, dpMinute = 0;
 function openDatePicker(field) {
   dpTarget = field;
   dpMode = 'date';
-  const today = new Date();
-  dpYear = today.getFullYear();
-  dpMonth = today.getMonth();
-  dpDay = today.getDate();
+  // Per 'al': partiamo dal mese della data di inizio se già inserita
+  // Per qualsiasi campo: se ha già un valore, apriamo su quel mese
+  let refVal = null;
+  if (field === 'al') {
+    refVal = document.getElementById('input-dal').value;
+  }
+  if (!refVal) {
+    refVal = document.getElementById('input-' + field) ? document.getElementById('input-' + field).value : '';
+  }
+  const p = refVal ? refVal.split('/') : null;
+  if (p && p.length === 3 && !isNaN(parseInt(p[2]))) {
+    dpDay   = parseInt(p[0]);
+    dpMonth = parseInt(p[1]) - 1;
+    dpYear  = parseInt(p[2]);
+  } else {
+    const today = new Date();
+    dpYear  = today.getFullYear();
+    dpMonth = today.getMonth();
+    dpDay   = today.getDate();
+  }
   document.getElementById('dp-title').textContent = 'Seleziona data';
   document.getElementById('dp-time-section').style.display = 'none';
   renderCalendar();
@@ -903,7 +919,14 @@ function openDatePicker(field) {
 function openTimePicker(field) {
   dpTarget = field;
   dpMode = 'time';
-  dpHour = 0; dpMinute = 0;
+  const cur = document.getElementById('input-' + field) ? document.getElementById('input-' + field).value : '';
+  const tp = cur ? cur.replace(' LT','').split(':') : null;
+  if (tp && tp.length === 2 && !isNaN(parseInt(tp[0]))) {
+    dpHour   = parseInt(tp[0]);
+    dpMinute = parseInt(tp[1]);
+  } else {
+    dpHour = 0; dpMinute = 0;
+  }
   document.getElementById('dp-title').textContent = 'Seleziona orario';
   document.getElementById('dp-calendar').style.display = 'none';
   document.getElementById('dp-time-section').style.display = 'block';
@@ -970,12 +993,15 @@ function dpSetMinute(m) { dpMinute = m; renderTimePicker(); }
 
 function confirmDatePicker() {
   document.getElementById('dp-overlay').classList.remove('show');
+  // dpTarget è già il prefisso completo per il form modifica (es. 'modifica-dal')
+  // mentre per il form aggiungi è solo il nome del campo (es. 'dal') → serve aggiungere 'input-'
+  const elId = document.getElementById(dpTarget) ? dpTarget : 'input-' + dpTarget;
+  const el = document.getElementById(elId);
+  if (!el) return;
   if (dpMode === 'date') {
-    const val = `${String(dpDay).padStart(2,'0')}/${String(dpMonth+1).padStart(2,'0')}/${dpYear}`;
-    document.getElementById('input-' + dpTarget).value = val;
+    el.value = `${String(dpDay).padStart(2,'0')}/${String(dpMonth+1).padStart(2,'0')}/${dpYear}`;
   } else {
-    const val = `${String(dpHour).padStart(2,'0')}:${String(dpMinute).padStart(2,'0')}`;
-    document.getElementById('input-' + dpTarget).value = val;
+    el.value = `${String(dpHour).padStart(2,'0')}:${String(dpMinute).padStart(2,'0')}`;
   }
 }
 
@@ -1616,10 +1642,27 @@ function selectNazioneModifica(n) {
 function openDatePickerModifica(field) {
   dpTarget = 'modifica-' + field;
   dpMode = 'date';
-  const today = new Date();
-  dpYear = today.getFullYear();
-  dpMonth = today.getMonth();
-  dpDay = today.getDate();
+  // Per 'al': partiamo dal mese della data di inizio se già inserita
+  // Altrimenti leggiamo il valore attuale del campo stesso
+  let refVal = null;
+  if (field === 'al') {
+    refVal = document.getElementById('modifica-dal').value;
+  }
+  if (!refVal) {
+    const el = document.getElementById('modifica-' + field);
+    refVal = el ? el.value : '';
+  }
+  const p = refVal ? refVal.split('/') : null;
+  if (p && p.length === 3 && !isNaN(parseInt(p[2]))) {
+    dpDay   = parseInt(p[0]);
+    dpMonth = parseInt(p[1]) - 1;
+    dpYear  = parseInt(p[2]);
+  } else {
+    const today = new Date();
+    dpYear  = today.getFullYear();
+    dpMonth = today.getMonth();
+    dpDay   = today.getDate();
+  }
   document.getElementById('dp-title').textContent = 'Seleziona data';
   document.getElementById('dp-time-section').style.display = 'none';
   renderCalendar();
@@ -1629,7 +1672,15 @@ function openDatePickerModifica(field) {
 function openTimePickerModifica(field) {
   dpTarget = 'modifica-' + field;
   dpMode = 'time';
-  dpHour = 0; dpMinute = 0;
+  const el = document.getElementById('modifica-' + field);
+  const cur = el ? el.value : '';
+  const tp = cur ? cur.replace(' LT','').split(':') : null;
+  if (tp && tp.length === 2 && !isNaN(parseInt(tp[0]))) {
+    dpHour   = parseInt(tp[0]);
+    dpMinute = parseInt(tp[1]);
+  } else {
+    dpHour = 0; dpMinute = 0;
+  }
   document.getElementById('dp-title').textContent = 'Seleziona orario';
   document.getElementById('dp-calendar').style.display = 'none';
   document.getElementById('dp-time-section').style.display = 'block';
