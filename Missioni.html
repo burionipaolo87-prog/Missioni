@@ -547,6 +547,14 @@
   -webkit-tap-highlight-color: transparent;
 }
 .pin-key:active { background: rgba(255,255,255,0.25); transform: scale(0.94); }
+/* Tastiera dentro pagina cambia-pin (sfondo chiaro) */
+#page-cambia-pin .pin-key {
+  background: var(--blu);
+  color: white;
+}
+#page-cambia-pin .pin-key:active { background: var(--blu-scuro, #0a2a5e); }
+#page-cambia-pin .pin-dot { border-color: var(--blu); }
+#page-cambia-pin .pin-dot.filled { background: var(--blu); border-color: var(--blu); }
 .pin-del { font-size: 22px; }
 @keyframes pinShake {
   0%,100% { transform: translateX(0); }
@@ -1031,7 +1039,7 @@ function showPage(page, extra) {
 
   if (page === 'home') { updateCounts(); }
   if (page === 'aperte') { renderAperte(); }
-  if (page === 'chiuse') { renderChiuse(); }
+  if (page === 'chiuse') { renderChiuse(); setTimeout(() => { const el = document.getElementById('lista-chiuse'); if (el) el.scrollTop = el.scrollHeight; }, 50); }
   if (page === 'dettaglio' && extra) { renderDettaglio(extra); }
   if (page === 'aggiungi') { resetForm(); }
   if (page === 'modifica' && extra) { resetFormModifica(extra); }
@@ -1077,7 +1085,11 @@ function renderAperte() {
 // ===== RENDER CHIUSE =====
 function renderChiuse() {
   const el = document.getElementById('lista-chiuse');
-  const chiuse = missioni.filter(m => m.stato === 'chiusa');
+  const chiuse = missioni.filter(m => m.stato === 'chiusa').sort((a, b) => {
+    // Ordina per dataChiusura: gg/mm/aaaa → prima chiusa in cima, ultima in fondo
+    const toDate = d => { if (!d) return 0; const p = d.split('/'); return new Date(p[2], p[1]-1, p[0]).getTime(); };
+    return toDate(a.dataChiusura) - toDate(b.dataChiusura);
+  });
   if (!chiuse.length) {
     el.innerHTML = `<div class="lista-empty"><div class="empty-icon">✅</div>Nessuna missione chiusa</div>`;
     document.getElementById('totale-value').textContent = '€ 0,00';
