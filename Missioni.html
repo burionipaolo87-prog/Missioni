@@ -618,7 +618,7 @@
         👤 Abilita Face ID
       </button>
       <button onclick="closeSettingsMenu();esportaBackup()" class="mini-btn">
-        📤 Esporta backup
+        🔐 Esporta backup criptato
       </button>
       <button onclick="closeSettingsMenu();document.getElementById('backup-file-input').click()" class="mini-btn">
         📥 Importa backup
@@ -1470,24 +1470,118 @@ function confermEliminaOk() {
 }
 
 
-// ===== BACKUP DATI =====
-function esportaBackup() {
-  const payload = {
+// ===== BACKUP DATI CRIPTATO =====
+const BACKUP_ITERATIONS = 210000;
+
+function bytesToBase64(bytes) {
+  let binary = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
+function base64ToBytes(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+async function deriveBackupKey(password, saltBytes) {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(password),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveKey']
+  );
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: saltBytes, iterations: BACKUP_ITERATIONS, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+async function encryptBackupPayload(payload, password) {
+  if (!window.crypto || !crypto.subtle) {
+    throw new Error('Crittografia non disponibile in questo browser. Apri l’app da Safari/HTTPS o dalla schermata Home.');
+  }
+  const enc = new TextEncoder();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveBackupKey(password, salt);
+  const plain = enc.encode(JSON.stringify(payload));
+  const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plain);
+  return {
     app: 'Missioni',
-    versione: 2,
+    tipo: 'backup-criptato',
+    versione: 3,
+    criptato: true,
     esportatoIl: new Date().toISOString(),
-    missioni
+    crypto: {
+      algoritmo: 'AES-GCM',
+      kdf: 'PBKDF2-SHA256',
+      iterazioni: BACKUP_ITERATIONS,
+      salt: bytesToBase64(salt),
+      iv: bytesToBase64(iv)
+    },
+    dati: bytesToBase64(new Uint8Array(encrypted))
   };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const data = new Date().toISOString().slice(0,10);
-  a.href = url;
-  a.download = `missioni-backup-${data}.json`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+}
+
+async function decryptBackupPayload(encryptedBackup, password) {
+  if (!window.crypto || !crypto.subtle) {
+    throw new Error('Crittografia non disponibile in questo browser. Apri l’app da Safari/HTTPS o dalla schermata Home.');
+  }
+  const c = encryptedBackup.crypto || {};
+  if (!encryptedBackup.dati || !c.salt || !c.iv) throw new Error('Backup criptato non valido');
+  const salt = base64ToBytes(c.salt);
+  const iv = base64ToBytes(c.iv);
+  const cipher = base64ToBytes(encryptedBackup.dati);
+  const key = await deriveBackupKey(password, salt);
+  try {
+    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, cipher);
+    const text = new TextDecoder().decode(decrypted);
+    return JSON.parse(text);
+  } catch (e) {
+    throw new Error('Password errata oppure backup danneggiato');
+  }
+}
+
+async function esportaBackup() {
+  const password = prompt('Scegli una password per criptare il backup. Ti servirà per importarlo.');
+  if (password === null) return;
+  if (password.length < 4) { alert('Usa una password di almeno 4 caratteri.'); return; }
+  const conferma = prompt('Ripeti la password del backup.');
+  if (conferma === null) return;
+  if (password !== conferma) { alert('Le password non coincidono.'); return; }
+
+  try {
+    const payload = {
+      app: 'Missioni',
+      versione: 3,
+      esportatoIl: new Date().toISOString(),
+      missioni
+    };
+    const encrypted = await encryptBackupPayload(payload, password);
+    const blob = new Blob([JSON.stringify(encrypted, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const data = new Date().toISOString().slice(0,10);
+    a.href = url;
+    a.download = `missioni-backup-criptato-${data}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert('Impossibile esportare il backup criptato: ' + err.message);
+  }
 }
 
 function importaBackup(event) {
@@ -1495,9 +1589,14 @@ function importaBackup(event) {
   event.target.value = '';
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     try {
-      const data = JSON.parse(reader.result);
+      let data = JSON.parse(reader.result);
+      if (data && data.criptato) {
+        const password = prompt('Inserisci la password del backup criptato.');
+        if (password === null) return;
+        data = await decryptBackupPayload(data, password);
+      }
       const nuoveMissioni = Array.isArray(data) ? data : data.missioni;
       if (!Array.isArray(nuoveMissioni)) throw new Error('Formato backup non valido');
       if (!confirm(`Importare ${nuoveMissioni.length} missioni? I dati attuali saranno sostituiti.`)) return;
